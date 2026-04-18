@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>시간대별 글자수 줄바꿈 변환기</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>시간대별 글자수 줄바꿈 변환기</h1>
+      <div class="desc">
+        메모장(.txt) 파일을 불러온 뒤, 시간대별 본문을 입력한 글자 수마다 자동 줄바꿈 처리하고
+        다시 메모장 파일로 내려받을 수 있습니다.
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="fileInput">1. txt 파일 불러오기</label>
+          <input type="file" id="fileInput" accept=".txt" />
+        </div>
+        <div>
+          <label for="charCount">2. 줄바꿈 글자 수</label>
+          <input type="number" id="charCount" min="1" value="25" />
+        </div>
+        <div>
+          <label for="downloadName">다운로드 파일명</label>
+          <input type="text" id="downloadName" value="converted.txt" />
+        </div>
+      </div>
+
+      <div class="option-row">
+        <label class="checkbox">
+          <input type="checkbox" id="includeSpaces" checked />
+          공백 포함해서 글자 수 계산
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="keepBlankLines" checked />
+          원본 빈 줄 최대한 유지
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button id="convertBtn">변환하기</button>
+        <button id="downloadBtn" disabled>변환본 다운로드</button>
+        <button id="sampleBtn" class="secondary">예시 넣기</button>
+        <button id="resetBtn" class="secondary">초기화</button>
+      </div>
+
+      <div class="status" id="status">파일을 불러오거나 예시를 넣어주세요.</div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h2 class="sub-title">원본</h2>
+        <textarea id="inputText" placeholder="불러온 메모장 내용이 여기에 표시됩니다."></textarea>
+      </div>
+
+      <div class="card">
+        <h2 class="sub-title">변환 결과</h2>
+        <textarea id="outputText" placeholder="변환 결과가 여기에 표시됩니다."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

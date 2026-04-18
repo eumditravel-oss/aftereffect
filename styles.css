@@ -91,18 +91,6 @@ body {
   margin-bottom: 22px;
 }
 
-.hero h1 {
-  margin: 0 0 10px;
-  font-size: 30px;
-  line-height: 1.2;
-}
-
-.hero-desc {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.7;
-}
-
 .section-head {
   display: flex;
   align-items: center;
@@ -260,9 +248,40 @@ button:disabled {
   margin-top: 18px;
 }
 
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .panel-title {
   margin: 0 0 10px;
   font-size: 17px;
+}
+
+.replace-box {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.replace-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 160px;
+  gap: 12px;
+  align-items: end;
+}
+
+.replace-actions {
+  display: flex;
+  align-items: end;
+}
+
+.replace-actions button {
+  width: 100%;
 }
 
 .token-help {
@@ -375,7 +394,8 @@ button:disabled {
   .upload-box,
   .split-2,
   .grid-2,
-  .grid-3 {
+  .grid-3,
+  .replace-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -387,10 +407,6 @@ button:disabled {
 
   .card {
     padding: 18px;
-  }
-
-  .hero h1 {
-    font-size: 24px;
   }
 
   .file-item {

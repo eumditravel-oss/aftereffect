@@ -98,39 +98,35 @@
           <h2>2. GitHub 스크립트 업로드 / 다운로드</h2>
         </div>
 
-        <div class="grid grid-4">
+        <div class="grid grid-2">
           <div>
             <label for="ghOwner">GitHub 사용자명(Owner)</label>
-            <input type="text" id="ghOwner" placeholder="예: your-id" />
+            <input type="text" id="ghOwner" placeholder="예: eumditravel-oss" />
           </div>
-          <div>
-            <label for="ghRepo">저장소명(Repo)</label>
-            <input type="text" id="ghRepo" placeholder="예: script-library" />
-          </div>
-          <div>
-            <label for="ghBranch">브랜치</label>
-            <input type="text" id="ghBranch" value="main" />
-          </div>
-          <div>
-            <label for="ghFolder">저장 폴더 경로</label>
-            <input type="text" id="ghFolder" value="scripts" placeholder="예: scripts/lisp" />
-          </div>
-        </div>
-
-        <div class="grid grid-2">
           <div>
             <label for="ghToken">GitHub Token</label>
             <input type="password" id="ghToken" placeholder="Personal Access Token 입력" />
           </div>
-          <div>
-            <label for="ghCommitMessage">커밋 메시지</label>
-            <input type="text" id="ghCommitMessage" value="Upload script file from web app" />
+        </div>
+
+        <div class="fixed-repo-box">
+          <div class="fixed-repo-item">
+            <span class="fixed-repo-label">저장소</span>
+            <strong id="fixedRepoText">-</strong>
+          </div>
+          <div class="fixed-repo-item">
+            <span class="fixed-repo-label">브랜치</span>
+            <strong id="fixedBranchText">-</strong>
+          </div>
+          <div class="fixed-repo-item">
+            <span class="fixed-repo-label">폴더</span>
+            <strong id="fixedFolderText">-</strong>
           </div>
         </div>
 
         <div class="token-help">
-          토큰은 브라우저에서 직접 GitHub API 호출에 사용됩니다.
-          작업용 전용 저장소와 최소 권한 토큰 사용을 권장합니다.
+          화면에서는 사용자명과 토큰만 입력합니다.
+          저장소명 / 브랜치 / 폴더는 코드에 고정되어 있습니다.
         </div>
 
         <div class="upload-box">
@@ -151,12 +147,12 @@
           <button id="clearSettingsBtn" class="ghost">설정 초기화</button>
         </div>
 
-        <div class="status" id="githubStatus">GitHub 연결 정보를 입력해주세요.</div>
+        <div class="status" id="githubStatus">GitHub 사용자명과 토큰을 입력해주세요.</div>
 
         <div class="file-list-wrap">
           <div class="file-list-head">
             <h3 class="panel-title">저장소 파일 목록</h3>
-            <div class="small-note">현재 폴더 기준으로 표시됩니다.</div>
+            <div class="small-note">고정된 저장소 / 폴더 기준으로 표시됩니다.</div>
           </div>
           <div id="fileList" class="file-list empty">
             아직 불러온 파일이 없습니다.

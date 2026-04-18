@@ -1,15 +1,12 @@
 /* =========================
    고정 GitHub 설정
-   여기만 한 번 수정하면 됩니다.
 ========================= */
-const FIXED_GH_REPO = "script-library";
 const FIXED_GH_BRANCH = "main";
-const FIXED_GH_FOLDER = "scripts";
 
 /* =========================
    공통 유틸
 ========================= */
-const STORAGE_KEY = "GITHUB_SCRIPT_DOWNLOAD_SETTINGS_V1";
+const STORAGE_KEY = "GITHUB_REPO_BROWSER_SETTINGS_V1";
 const GH_API_BASE = "https://api.github.com";
 
 function qs(id) {
@@ -68,12 +65,6 @@ function escapeRegExp(str) {
 
 function isSentenceEndChar(ch) {
   return [".", "?", "!", "…", "。", "？", "！"].includes(ch);
-}
-
-function updateFixedGithubInfo() {
-  qs("fixedRepoText").textContent = FIXED_GH_REPO;
-  qs("fixedBranchText").textContent = FIXED_GH_BRANCH;
-  qs("fixedFolderText").textContent = FIXED_GH_FOLDER || "/";
 }
 
 async function publicGithubRequest(url) {
@@ -372,28 +363,52 @@ function wrapTextBySentenceOrCharCount(text, charLimit, includeSpaces) {
 }
 
 /* =========================
-   2. GitHub 공개 다운로드 기능
+   2. GitHub 저장소 브라우저
 ========================= */
 const ghOwner = qs("ghOwner");
+const repoNameInput = qs("fixedRepoTextInput");
+const fixedBranchText = qs("fixedBranchText");
+const currentPathText = qs("currentPathText");
 const listFilesBtn = qs("listFilesBtn");
+const goUpBtn = qs("goUpBtn");
 const saveSettingsBtn = qs("saveSettingsBtn");
 const clearSettingsBtn = qs("clearSettingsBtn");
 const githubStatus = qs("githubStatus");
 const fileList = qs("fileList");
 
-listFilesBtn.addEventListener("click", handleListGitHubFiles);
+let currentRepoPath = "";
+
+listFilesBtn.addEventListener("click", () => {
+  currentRepoPath = "";
+  handleListGitHubFiles();
+});
+goUpBtn.addEventListener("click", handleGoUpFolder);
 saveSettingsBtn.addEventListener("click", saveGitHubSettings);
 clearSettingsBtn.addEventListener("click", clearGitHubSettings);
 
 updateFixedGithubInfo();
 loadGitHubSettings();
+updateCurrentPathText();
+updateGoUpButtonState();
+
+function updateFixedGithubInfo() {
+  fixedBranchText.textContent = FIXED_GH_BRANCH;
+}
+
+function updateCurrentPathText() {
+  currentPathText.textContent = currentRepoPath ? `/${currentRepoPath}` : "/";
+}
+
+function updateGoUpButtonState() {
+  goUpBtn.disabled = !currentRepoPath;
+}
 
 function getGitHubConfig() {
   return {
     owner: safeTrim(ghOwner.value),
-    repo: FIXED_GH_REPO,
+    repo: safeTrim(repoNameInput.value),
     branch: FIXED_GH_BRANCH,
-    folder: normalizePath(FIXED_GH_FOLDER)
+    path: normalizePath(currentRepoPath)
   };
 }
 
@@ -406,12 +421,7 @@ function validateGitHubBaseConfig() {
   }
 
   if (!cfg.repo) {
-    alert("app.js의 FIXED_GH_REPO를 입력해주세요.");
-    return null;
-  }
-
-  if (!cfg.branch) {
-    alert("app.js의 FIXED_GH_BRANCH를 입력해주세요.");
+    alert("저장소명을 입력해주세요.");
     return null;
   }
 
@@ -420,11 +430,12 @@ function validateGitHubBaseConfig() {
 
 function saveGitHubSettings() {
   const cfg = {
-    owner: safeTrim(ghOwner.value)
+    owner: safeTrim(ghOwner.value),
+    repo: safeTrim(repoNameInput.value)
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-  setStatus(githubStatus, "GitHub 사용자명을 브라우저에 저장했습니다.", "success");
+  setStatus(githubStatus, "GitHub 사용자명과 저장소명을 브라우저에 저장했습니다.", "success");
 }
 
 function loadGitHubSettings() {
@@ -434,6 +445,7 @@ function loadGitHubSettings() {
 
     const saved = JSON.parse(raw);
     ghOwner.value = saved.owner || "";
+    repoNameInput.value = saved.repo || "script-library";
   } catch (err) {
     console.error(err);
   }
@@ -442,8 +454,20 @@ function loadGitHubSettings() {
 function clearGitHubSettings() {
   localStorage.removeItem(STORAGE_KEY);
   ghOwner.value = "";
+  repoNameInput.value = "script-library";
+  currentRepoPath = "";
+  updateCurrentPathText();
+  updateGoUpButtonState();
   renderFileList([]);
-  setStatus(githubStatus, "GitHub 사용자명 설정을 초기화했습니다.");
+  setStatus(githubStatus, "GitHub 사용자명/저장소명 설정을 초기화했습니다.");
+}
+
+function handleGoUpFolder() {
+  if (!currentRepoPath) return;
+  const parts = currentRepoPath.split("/").filter(Boolean);
+  parts.pop();
+  currentRepoPath = parts.join("/");
+  handleListGitHubFiles();
 }
 
 async function handleListGitHubFiles() {
@@ -451,21 +475,22 @@ async function handleListGitHubFiles() {
   if (!cfg) return;
 
   listFilesBtn.disabled = true;
+  goUpBtn.disabled = true;
+  updateCurrentPathText();
   setStatus(githubStatus, "저장소 파일 목록을 불러오는 중입니다.", "warn");
 
   try {
-    const path = cfg.folder ? `/${cfg.folder}` : "";
+    const path = cfg.path ? `/${cfg.path}` : "";
     const url = `${GH_API_BASE}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents${path}?ref=${encodeURIComponent(cfg.branch)}`;
 
     const data = await publicGithubRequest(url);
     const items = Array.isArray(data) ? data : [data];
-    const filesOnly = items.filter(item => item.type === "file");
 
-    renderFileList(filesOnly);
+    renderFileList(items);
 
     setStatus(
       githubStatus,
-      `파일 목록 불러오기 완료: ${filesOnly.length}개 파일`,
+      `파일 목록 불러오기 완료: ${items.length}개 항목`,
       "success"
     );
   } catch (err) {
@@ -475,37 +500,59 @@ async function handleListGitHubFiles() {
     if (String(err.message).includes("Not Found")) {
       setStatus(
         githubStatus,
-        "파일 목록 불러오기 실패: 공개 저장소가 아니거나, 사용자명/저장소명/폴더 경로가 올바르지 않습니다.",
+        "불러오기 실패: 공개 저장소가 아니거나, 사용자명/저장소명/경로가 올바르지 않습니다.",
         "error"
       );
     } else if (String(err.message).includes("API rate limit")) {
       setStatus(
         githubStatus,
-        "파일 목록 불러오기 실패: GitHub 조회 한도에 도달했습니다. 잠시 후 다시 시도해주세요.",
+        "불러오기 실패: GitHub 조회 한도에 도달했습니다. 잠시 후 다시 시도해주세요.",
         "error"
       );
     } else {
-      setStatus(githubStatus, `파일 목록 불러오기 실패: ${err.message}`, "error");
+      setStatus(githubStatus, `불러오기 실패: ${err.message}`, "error");
     }
   } finally {
     listFilesBtn.disabled = false;
+    updateGoUpButtonState();
   }
 }
 
-function renderFileList(files = []) {
-  if (!files.length) {
+function renderFileList(items = []) {
+  if (!items.length) {
     fileList.className = "file-list empty";
     fileList.innerHTML = "표시할 파일이 없습니다.";
     return;
   }
 
+  const sortedItems = [...items].sort((a, b) => {
+    if (a.type === b.type) return a.name.localeCompare(b.name);
+    return a.type === "dir" ? -1 : 1;
+  });
+
   fileList.className = "file-list";
-  fileList.innerHTML = files.map(file => {
-    const path = escapeHtml(file.path || "");
-    const name = escapeHtml(file.name || "");
-    const size = formatBytes(file.size);
-    const ext = getFileExtension(file.name || "");
-    const downloadUrl = file.download_url || file.html_url || "#";
+  fileList.innerHTML = sortedItems.map(item => {
+    const path = escapeHtml(item.path || "");
+    const name = escapeHtml(item.name || "");
+    const isDir = item.type === "dir";
+
+    if (isDir) {
+      return `
+        <div class="file-item folder" data-open-path="${escapeHtml(item.path || "")}">
+          <div class="file-meta">
+            <div class="file-name"><span class="folder-badge">📁 폴더</span> ${name}</div>
+            <div class="file-path">${path}</div>
+          </div>
+          <div class="file-actions">
+            <button type="button" class="secondary" data-open-path="${escapeHtml(item.path || "")}">열기</button>
+          </div>
+        </div>
+      `;
+    }
+
+    const size = formatBytes(item.size);
+    const ext = getFileExtension(item.name || "");
+    const downloadUrl = item.download_url || item.html_url || "#";
 
     return `
       <div class="file-item">
@@ -521,6 +568,15 @@ function renderFileList(files = []) {
       </div>
     `;
   }).join("");
+
+  fileList.querySelectorAll("[data-open-path]").forEach(btn => {
+    btn.addEventListener("click", (event) => {
+      const path = event.currentTarget.getAttribute("data-open-path");
+      currentRepoPath = normalizePath(path);
+      updateCurrentPathText();
+      handleListGitHubFiles();
+    });
+  });
 
   fileList.querySelectorAll("[data-copy-url]").forEach(btn => {
     btn.addEventListener("click", async (event) => {

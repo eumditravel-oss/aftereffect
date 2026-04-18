@@ -1,7 +1,15 @@
 /* =========================
+   고정 GitHub 설정
+   여기만 한 번 수정하면 됩니다.
+========================= */
+const FIXED_GH_REPO = "script-library";
+const FIXED_GH_BRANCH = "main";
+const FIXED_GH_FOLDER = "scripts";
+
+/* =========================
    공통 유틸
 ========================= */
-const STORAGE_KEY = "GITHUB_SCRIPT_APP_SETTINGS_V1";
+const STORAGE_KEY = "GITHUB_SCRIPT_APP_SETTINGS_V2_SIMPLE";
 const GH_API_BASE = "https://api.github.com";
 const GH_API_VERSION = "2022-11-28";
 
@@ -81,6 +89,12 @@ function escapeRegExp(str) {
 
 function isSentenceEndChar(ch) {
   return [".", "?", "!", "…", "。", "？", "！"].includes(ch);
+}
+
+function updateFixedGithubInfo() {
+  qs("fixedRepoText").textContent = FIXED_GH_REPO;
+  qs("fixedBranchText").textContent = FIXED_GH_BRANCH;
+  qs("fixedFolderText").textContent = FIXED_GH_FOLDER || "/";
 }
 
 /* =========================
@@ -363,11 +377,7 @@ function wrapTextBySentenceOrCharCount(text, charLimit, includeSpaces) {
    2. GitHub 업로드/다운로드 기능
 ========================= */
 const ghOwner = qs("ghOwner");
-const ghRepo = qs("ghRepo");
-const ghBranch = qs("ghBranch");
-const ghFolder = qs("ghFolder");
 const ghToken = qs("ghToken");
-const ghCommitMessage = qs("ghCommitMessage");
 const scriptFileInput = qs("scriptFileInput");
 const customFileName = qs("customFileName");
 const uploadScriptBtn = qs("uploadScriptBtn");
@@ -382,16 +392,17 @@ listFilesBtn.addEventListener("click", handleListGitHubFiles);
 saveSettingsBtn.addEventListener("click", saveGitHubSettings);
 clearSettingsBtn.addEventListener("click", clearGitHubSettings);
 
+updateFixedGithubInfo();
 loadGitHubSettings();
 
 function getGitHubConfig() {
   return {
     owner: safeTrim(ghOwner.value),
-    repo: safeTrim(ghRepo.value),
-    branch: safeTrim(ghBranch.value) || "main",
-    folder: normalizePath(ghFolder.value),
+    repo: FIXED_GH_REPO,
+    branch: FIXED_GH_BRANCH,
+    folder: normalizePath(FIXED_GH_FOLDER),
     token: safeTrim(ghToken.value),
-    commitMessage: safeTrim(ghCommitMessage.value) || "Upload script file from web app"
+    commitMessage: "Upload script file from web app"
   };
 }
 
@@ -404,12 +415,12 @@ function validateGitHubBaseConfig(requireToken = true) {
   }
 
   if (!cfg.repo) {
-    alert("저장소명(Repo)을 입력해주세요.");
+    alert("app.js의 FIXED_GH_REPO를 입력해주세요.");
     return null;
   }
 
   if (!cfg.branch) {
-    alert("브랜치를 입력해주세요.");
+    alert("app.js의 FIXED_GH_BRANCH를 입력해주세요.");
     return null;
   }
 
@@ -423,15 +434,11 @@ function validateGitHubBaseConfig(requireToken = true) {
 
 function saveGitHubSettings() {
   const cfg = {
-    owner: safeTrim(ghOwner.value),
-    repo: safeTrim(ghRepo.value),
-    branch: safeTrim(ghBranch.value),
-    folder: safeTrim(ghFolder.value),
-    commitMessage: safeTrim(ghCommitMessage.value)
+    owner: safeTrim(ghOwner.value)
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-  setStatus(githubStatus, "GitHub 연결 설정을 브라우저에 저장했습니다.", "success");
+  setStatus(githubStatus, "GitHub 사용자명을 브라우저에 저장했습니다.", "success");
 }
 
 function loadGitHubSettings() {
@@ -441,10 +448,6 @@ function loadGitHubSettings() {
 
     const saved = JSON.parse(raw);
     ghOwner.value = saved.owner || "";
-    ghRepo.value = saved.repo || "";
-    ghBranch.value = saved.branch || "main";
-    ghFolder.value = saved.folder || "scripts";
-    ghCommitMessage.value = saved.commitMessage || "Upload script file from web app";
   } catch (err) {
     console.error(err);
   }
@@ -453,15 +456,11 @@ function loadGitHubSettings() {
 function clearGitHubSettings() {
   localStorage.removeItem(STORAGE_KEY);
   ghOwner.value = "";
-  ghRepo.value = "";
-  ghBranch.value = "main";
-  ghFolder.value = "scripts";
-  ghCommitMessage.value = "Upload script file from web app";
   ghToken.value = "";
   customFileName.value = "";
   scriptFileInput.value = "";
   renderFileList([]);
-  setStatus(githubStatus, "GitHub 연결 설정을 초기화했습니다.");
+  setStatus(githubStatus, "GitHub 입력값을 초기화했습니다.");
 }
 
 async function githubRequest(url, options = {}, token = "") {
@@ -490,9 +489,7 @@ async function githubRequest(url, options = {}, token = "") {
   }
 
   if (!response.ok) {
-    const message =
-      (data && data.message) ||
-      `GitHub 요청 실패 (${response.status})`;
+    const message = (data && data.message) || `GitHub 요청 실패 (${response.status})`;
     throw new Error(message);
   }
 
@@ -565,8 +562,8 @@ async function handleUploadScriptToGitHub() {
     setStatus(
       githubStatus,
       existingSha
-        ? `업로드 완료: 기존 파일을 덮어썼습니다. (${fullPath})`
-        : `업로드 완료: 새 파일을 저장했습니다. (${fullPath})`,
+        ? `업로드 완료: 기존 파일을 덮어썼습니다. (${cfg.repo}/${fullPath})`
+        : `업로드 완료: 새 파일을 저장했습니다. (${cfg.repo}/${fullPath})`,
       "success"
     );
 
@@ -599,7 +596,7 @@ async function handleListGitHubFiles() {
     const items = Array.isArray(data) ? data : [data];
     const filesOnly = items.filter(item => item.type === "file");
 
-    renderFileList(filesOnly, cfg);
+    renderFileList(filesOnly);
 
     setStatus(
       githubStatus,
@@ -615,7 +612,7 @@ async function handleListGitHubFiles() {
   }
 }
 
-function renderFileList(files = [], cfg = null) {
+function renderFileList(files = []) {
   if (!files.length) {
     fileList.className = "file-list empty";
     fileList.innerHTML = "표시할 파일이 없습니다.";
@@ -639,7 +636,7 @@ function renderFileList(files = [], cfg = null) {
         </div>
         <div class="file-actions">
           <a href="${escapeHtml(downloadUrl)}" target="_blank" rel="noopener noreferrer">다운로드</a>
-          <button type="button" class="ghost-btn" data-copy-url="${escapeHtml(downloadUrl)}">링크 복사</button>
+          <button type="button" data-copy-url="${escapeHtml(downloadUrl)}">링크 복사</button>
         </div>
       </div>
     `;

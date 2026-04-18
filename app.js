@@ -9,9 +9,8 @@ const FIXED_GH_FOLDER = "scripts";
 /* =========================
    공통 유틸
 ========================= */
-const STORAGE_KEY = "GITHUB_SCRIPT_APP_SETTINGS_V2_SIMPLE";
+const STORAGE_KEY = "GITHUB_SCRIPT_DOWNLOAD_SETTINGS_V1";
 const GH_API_BASE = "https://api.github.com";
-const GH_API_VERSION = "2022-11-28";
 
 function qs(id) {
   return document.getElementById(id);
@@ -34,13 +33,6 @@ function normalizePath(path) {
   return safeTrim(path).replace(/^\/+|\/+$/g, "");
 }
 
-function joinPath(...parts) {
-  return parts
-    .map(part => normalizePath(part))
-    .filter(Boolean)
-    .join("/");
-}
-
 function setStatus(el, message, type = "default") {
   el.textContent = message;
   el.style.background =
@@ -55,19 +47,6 @@ function setStatus(el, message, type = "default") {
     type === "error" ? "#9f1239" :
     type === "success" ? "#166534" :
     type === "warn" ? "#9a3412" : "#334155";
-}
-
-function arrayBufferToBase64(buffer) {
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-
-  return btoa(binary);
 }
 
 function getFileExtension(filename) {
@@ -95,6 +74,25 @@ function updateFixedGithubInfo() {
   qs("fixedRepoText").textContent = FIXED_GH_REPO;
   qs("fixedBranchText").textContent = FIXED_GH_BRANCH;
   qs("fixedFolderText").textContent = FIXED_GH_FOLDER || "/";
+}
+
+async function publicGithubRequest(url) {
+  const response = await fetch(url);
+  const contentType = response.headers.get("content-type") || "";
+  let data = null;
+
+  if (contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
+
+  if (!response.ok) {
+    const message = (data && data.message) || `GitHub 요청 실패 (${response.status})`;
+    throw new Error(message);
+  }
+
+  return data;
 }
 
 /* =========================
@@ -374,20 +372,15 @@ function wrapTextBySentenceOrCharCount(text, charLimit, includeSpaces) {
 }
 
 /* =========================
-   2. GitHub 업로드/다운로드 기능
+   2. GitHub 공개 다운로드 기능
 ========================= */
 const ghOwner = qs("ghOwner");
-const ghToken = qs("ghToken");
-const scriptFileInput = qs("scriptFileInput");
-const customFileName = qs("customFileName");
-const uploadScriptBtn = qs("uploadScriptBtn");
 const listFilesBtn = qs("listFilesBtn");
 const saveSettingsBtn = qs("saveSettingsBtn");
 const clearSettingsBtn = qs("clearSettingsBtn");
 const githubStatus = qs("githubStatus");
 const fileList = qs("fileList");
 
-uploadScriptBtn.addEventListener("click", handleUploadScriptToGitHub);
 listFilesBtn.addEventListener("click", handleListGitHubFiles);
 saveSettingsBtn.addEventListener("click", saveGitHubSettings);
 clearSettingsBtn.addEventListener("click", clearGitHubSettings);
@@ -400,13 +393,11 @@ function getGitHubConfig() {
     owner: safeTrim(ghOwner.value),
     repo: FIXED_GH_REPO,
     branch: FIXED_GH_BRANCH,
-    folder: normalizePath(FIXED_GH_FOLDER),
-    token: safeTrim(ghToken.value),
-    commitMessage: "Upload script file from web app"
+    folder: normalizePath(FIXED_GH_FOLDER)
   };
 }
 
-function validateGitHubBaseConfig(requireToken = true) {
+function validateGitHubBaseConfig() {
   const cfg = getGitHubConfig();
 
   if (!cfg.owner) {
@@ -421,11 +412,6 @@ function validateGitHubBaseConfig(requireToken = true) {
 
   if (!cfg.branch) {
     alert("app.js의 FIXED_GH_BRANCH를 입력해주세요.");
-    return null;
-  }
-
-  if (requireToken && !cfg.token) {
-    alert("GitHub Token을 입력해주세요.");
     return null;
   }
 
@@ -456,128 +442,12 @@ function loadGitHubSettings() {
 function clearGitHubSettings() {
   localStorage.removeItem(STORAGE_KEY);
   ghOwner.value = "";
-  ghToken.value = "";
-  customFileName.value = "";
-  scriptFileInput.value = "";
   renderFileList([]);
-  setStatus(githubStatus, "GitHub 입력값을 초기화했습니다.");
-}
-
-async function githubRequest(url, options = {}, token = "") {
-  const headers = {
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": GH_API_VERSION,
-    ...(options.headers || {})
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-
-  const contentType = response.headers.get("content-type") || "";
-  let data = null;
-
-  if (contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    data = await response.text();
-  }
-
-  if (!response.ok) {
-    const message = (data && data.message) || `GitHub 요청 실패 (${response.status})`;
-    throw new Error(message);
-  }
-
-  return data;
-}
-
-async function getExistingFileSha(cfg, filePath) {
-  const url = `${GH_API_BASE}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${filePath}?ref=${encodeURIComponent(cfg.branch)}`;
-
-  try {
-    const data = await githubRequest(url, { method: "GET" }, cfg.token);
-    if (data && data.sha) {
-      return data.sha;
-    }
-    return null;
-  } catch (err) {
-    if (String(err.message).includes("Not Found")) {
-      return null;
-    }
-    throw err;
-  }
-}
-
-async function handleUploadScriptToGitHub() {
-  const cfg = validateGitHubBaseConfig(true);
-  if (!cfg) return;
-
-  const file = scriptFileInput.files[0];
-  if (!file) {
-    alert("업로드할 파일을 선택해주세요.");
-    return;
-  }
-
-  const overrideName = safeTrim(customFileName.value);
-  const finalFileName = overrideName || file.name;
-  const fullPath = joinPath(cfg.folder, finalFileName);
-
-  uploadScriptBtn.disabled = true;
-  setStatus(githubStatus, `업로드 준비 중: ${finalFileName}`, "warn");
-
-  try {
-    const buffer = await file.arrayBuffer();
-    const contentBase64 = arrayBufferToBase64(buffer);
-    const existingSha = await getExistingFileSha(cfg, fullPath);
-
-    const url = `${GH_API_BASE}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${fullPath}`;
-
-    const payload = {
-      message: cfg.commitMessage,
-      content: contentBase64,
-      branch: cfg.branch
-    };
-
-    if (existingSha) {
-      payload.sha = existingSha;
-    }
-
-    await githubRequest(
-      url,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      },
-      cfg.token
-    );
-
-    setStatus(
-      githubStatus,
-      existingSha
-        ? `업로드 완료: 기존 파일을 덮어썼습니다. (${cfg.repo}/${fullPath})`
-        : `업로드 완료: 새 파일을 저장했습니다. (${cfg.repo}/${fullPath})`,
-      "success"
-    );
-
-    await handleListGitHubFiles();
-  } catch (err) {
-    console.error(err);
-    setStatus(githubStatus, `업로드 실패: ${err.message}`, "error");
-  } finally {
-    uploadScriptBtn.disabled = false;
-  }
+  setStatus(githubStatus, "GitHub 사용자명 설정을 초기화했습니다.");
 }
 
 async function handleListGitHubFiles() {
-  const cfg = validateGitHubBaseConfig(false);
+  const cfg = validateGitHubBaseConfig();
   if (!cfg) return;
 
   listFilesBtn.disabled = true;
@@ -587,12 +457,7 @@ async function handleListGitHubFiles() {
     const path = cfg.folder ? `/${cfg.folder}` : "";
     const url = `${GH_API_BASE}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents${path}?ref=${encodeURIComponent(cfg.branch)}`;
 
-    const data = await githubRequest(
-      url,
-      { method: "GET" },
-      cfg.token || ""
-    );
-
+    const data = await publicGithubRequest(url);
     const items = Array.isArray(data) ? data : [data];
     const filesOnly = items.filter(item => item.type === "file");
 
@@ -606,7 +471,22 @@ async function handleListGitHubFiles() {
   } catch (err) {
     console.error(err);
     renderFileList([]);
-    setStatus(githubStatus, `파일 목록 불러오기 실패: ${err.message}`, "error");
+
+    if (String(err.message).includes("Not Found")) {
+      setStatus(
+        githubStatus,
+        "파일 목록 불러오기 실패: 공개 저장소가 아니거나, 사용자명/저장소명/폴더 경로가 올바르지 않습니다.",
+        "error"
+      );
+    } else if (String(err.message).includes("API rate limit")) {
+      setStatus(
+        githubStatus,
+        "파일 목록 불러오기 실패: GitHub 조회 한도에 도달했습니다. 잠시 후 다시 시도해주세요.",
+        "error"
+      );
+    } else {
+      setStatus(githubStatus, `파일 목록 불러오기 실패: ${err.message}`, "error");
+    }
   } finally {
     listFilesBtn.disabled = false;
   }

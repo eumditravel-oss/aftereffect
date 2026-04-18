@@ -3,65 +3,155 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>시간대별 글자수 줄바꿈 변환기</title>
+  <title>텍스트 줄바꿈 + GitHub 스크립트 보관소</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>시간대별 글자수 줄바꿈 변환기</h1>
-      <div class="desc">
-        메모장(.txt) 파일을 불러온 뒤, 시간대별 본문을 입력한 글자 수마다 자동 줄바꿈 처리하고
-        다시 메모장 파일로 내려받을 수 있습니다.
-      </div>
-
-      <div class="grid">
-        <div>
-          <label for="fileInput">1. txt 파일 불러오기</label>
-          <input type="file" id="fileInput" accept=".txt" />
-        </div>
-        <div>
-          <label for="charCount">2. 줄바꿈 글자 수</label>
-          <input type="number" id="charCount" min="1" value="25" />
-        </div>
-        <div>
-          <label for="downloadName">다운로드 파일명</label>
-          <input type="text" id="downloadName" value="converted.txt" />
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark">C</div>
+          <div class="brand-text">
+            <strong>Con-Cost Utility</strong>
+            <span>텍스트 줄바꿈 + GitHub 스크립트 업로드/다운로드</span>
+          </div>
         </div>
       </div>
+    </header>
 
-      <div class="option-row">
-        <label class="checkbox">
-          <input type="checkbox" id="includeSpaces" checked />
-          공백 포함해서 글자 수 계산
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" id="keepBlankLines" checked />
-          원본 빈 줄 최대한 유지
-        </label>
-      </div>
+    <main class="page">
+      <section class="hero card">
+        <h1>텍스트 줄바꿈 + GitHub 스크립트 보관소</h1>
+        <p class="hero-desc">
+          메모장(txt) 내용을 시간대별로 지정 글자 수마다 줄바꿈 처리하고,
+          보유 중인 스크립트 파일을 GitHub 저장소에 올려두었다가 언제든지 다시 받을 수 있습니다.
+        </p>
+      </section>
 
-      <div class="btn-row">
-        <button id="convertBtn">변환하기</button>
-        <button id="downloadBtn" disabled>변환본 다운로드</button>
-        <button id="sampleBtn" class="secondary">예시 넣기</button>
-        <button id="resetBtn" class="secondary">초기화</button>
-      </div>
+      <section class="card">
+        <div class="section-head">
+          <h2>1. 시간대별 텍스트 줄바꿈</h2>
+        </div>
 
-      <div class="status" id="status">파일을 불러오거나 예시를 넣어주세요.</div>
-    </div>
+        <div class="grid grid-3">
+          <div>
+            <label for="textFileInput">txt 파일 불러오기</label>
+            <input type="file" id="textFileInput" accept=".txt" />
+          </div>
+          <div>
+            <label for="charCount">줄바꿈 글자 수</label>
+            <input type="number" id="charCount" min="1" value="25" />
+          </div>
+          <div>
+            <label for="downloadName">변환본 파일명</label>
+            <input type="text" id="downloadName" value="converted.txt" />
+          </div>
+        </div>
 
-    <div class="two-col">
-      <div class="card">
-        <h2 class="sub-title">원본</h2>
-        <textarea id="inputText" placeholder="불러온 메모장 내용이 여기에 표시됩니다."></textarea>
-      </div>
+        <div class="option-row">
+          <label class="checkbox">
+            <input type="checkbox" id="includeSpaces" checked />
+            공백 포함해서 글자 수 계산
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="keepBlankLines" checked />
+            원본 빈 줄 최대한 유지
+          </label>
+        </div>
 
-      <div class="card">
-        <h2 class="sub-title">변환 결과</h2>
-        <textarea id="outputText" placeholder="변환 결과가 여기에 표시됩니다."></textarea>
-      </div>
-    </div>
+        <div class="btn-row">
+          <button id="convertBtn">변환하기</button>
+          <button id="downloadTextBtn" class="secondary" disabled>변환 txt 다운로드</button>
+          <button id="sampleBtn" class="secondary">예시 넣기</button>
+          <button id="resetTextBtn" class="ghost">초기화</button>
+        </div>
+
+        <div class="status" id="textStatus">텍스트 파일을 불러오거나 예시를 넣어주세요.</div>
+
+        <div class="split-2">
+          <div>
+            <h3 class="panel-title">원본</h3>
+            <textarea id="inputText" placeholder="불러온 메모장 내용이 여기에 표시됩니다."></textarea>
+          </div>
+          <div>
+            <h3 class="panel-title">변환 결과</h3>
+            <textarea id="outputText" placeholder="변환 결과가 여기에 표시됩니다."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>2. GitHub 스크립트 업로드 / 다운로드</h2>
+        </div>
+
+        <div class="grid grid-4">
+          <div>
+            <label for="ghOwner">GitHub 사용자명(Owner)</label>
+            <input type="text" id="ghOwner" placeholder="예: your-id" />
+          </div>
+          <div>
+            <label for="ghRepo">저장소명(Repo)</label>
+            <input type="text" id="ghRepo" placeholder="예: script-library" />
+          </div>
+          <div>
+            <label for="ghBranch">브랜치</label>
+            <input type="text" id="ghBranch" value="main" />
+          </div>
+          <div>
+            <label for="ghFolder">저장 폴더 경로</label>
+            <input type="text" id="ghFolder" value="scripts" placeholder="예: scripts/lisp" />
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div>
+            <label for="ghToken">GitHub Token</label>
+            <input type="password" id="ghToken" placeholder="Personal Access Token 입력" />
+          </div>
+          <div>
+            <label for="ghCommitMessage">커밋 메시지</label>
+            <input type="text" id="ghCommitMessage" value="Upload script file from web app" />
+          </div>
+        </div>
+
+        <div class="token-help">
+          토큰은 브라우저에서 직접 GitHub API 호출에 사용됩니다.
+          작업용 전용 저장소와 최소 권한 토큰 사용을 권장합니다.
+        </div>
+
+        <div class="upload-box">
+          <div class="upload-left">
+            <label for="scriptFileInput">업로드할 스크립트 파일 선택</label>
+            <input type="file" id="scriptFileInput" />
+          </div>
+          <div class="upload-right">
+            <label for="customFileName">저장 파일명(선택)</label>
+            <input type="text" id="customFileName" placeholder="비워두면 원본 파일명 사용" />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="uploadScriptBtn">GitHub에 업로드</button>
+          <button id="listFilesBtn" class="secondary">파일 목록 불러오기</button>
+          <button id="saveSettingsBtn" class="ghost">설정 저장</button>
+          <button id="clearSettingsBtn" class="ghost">설정 초기화</button>
+        </div>
+
+        <div class="status" id="githubStatus">GitHub 연결 정보를 입력해주세요.</div>
+
+        <div class="file-list-wrap">
+          <div class="file-list-head">
+            <h3 class="panel-title">저장소 파일 목록</h3>
+            <div class="small-note">현재 폴더 기준으로 표시됩니다.</div>
+          </div>
+          <div id="fileList" class="file-list empty">
+            아직 불러온 파일이 없습니다.
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
   <script src="./app.js"></script>

@@ -14,7 +14,7 @@
           <div class="brand-mark">C</div>
           <div class="brand-text">
             <strong>After Effect 글자수 변환</strong>
-            <span>텍스트 줄바꿈 + GitHub 스크립트 다운로드</span>
+            <span>텍스트 줄바꿈 + GitHub 저장소 파일 다운로드</span>
           </div>
         </div>
       </div>
@@ -95,48 +95,49 @@
 
       <section class="card">
         <div class="section-head">
-          <h2>2. GitHub 스크립트 다운로드</h2>
+          <h2>2. GitHub 저장소 파일 다운로드</h2>
         </div>
 
-        <div class="grid grid-1">
+        <div class="grid grid-2">
           <div>
             <label for="ghOwner">GitHub 사용자명(Owner)</label>
             <input type="text" id="ghOwner" placeholder="예: eumditravel-oss" />
           </div>
+          <div>
+            <label for="fixedRepoTextInput">저장소명</label>
+            <input type="text" id="fixedRepoTextInput" value="script-library" />
+          </div>
         </div>
 
-        <div class="fixed-repo-box">
-          <div class="fixed-repo-item">
-            <span class="fixed-repo-label">저장소</span>
-            <strong id="fixedRepoText">-</strong>
-          </div>
+        <div class="fixed-repo-box fixed-repo-box-2">
           <div class="fixed-repo-item">
             <span class="fixed-repo-label">브랜치</span>
-            <strong id="fixedBranchText">-</strong>
+            <strong id="fixedBranchText">main</strong>
           </div>
           <div class="fixed-repo-item">
-            <span class="fixed-repo-label">폴더</span>
-            <strong id="fixedFolderText">-</strong>
+            <span class="fixed-repo-label">현재 경로</span>
+            <strong id="currentPathText">/</strong>
           </div>
         </div>
 
         <div class="token-help">
-          GitHub에는 직접 파일을 업로드해두고, 이 웹에서는 공개 저장소 파일만 불러와 다운로드합니다.
+          공개 저장소 기준으로 저장소 루트부터 폴더를 열어 파일을 바로 다운로드할 수 있습니다.
           토큰이나 업로드 권한은 필요하지 않습니다.
         </div>
 
         <div class="btn-row">
           <button id="listFilesBtn">파일 목록 불러오기</button>
+          <button id="goUpBtn" class="secondary">상위 폴더</button>
           <button id="saveSettingsBtn" class="ghost">설정 저장</button>
           <button id="clearSettingsBtn" class="ghost">설정 초기화</button>
         </div>
 
-        <div class="status" id="githubStatus">GitHub 사용자명을 입력한 뒤 파일 목록을 불러오세요.</div>
+        <div class="status" id="githubStatus">GitHub 사용자명과 저장소명을 입력한 뒤 파일 목록을 불러오세요.</div>
 
         <div class="file-list-wrap">
           <div class="file-list-head">
             <h3 class="panel-title">저장소 파일 목록</h3>
-            <div class="small-note">고정된 저장소 / 폴더 기준으로 표시됩니다.</div>
+            <div class="small-note">폴더는 열기, 파일은 다운로드</div>
           </div>
           <div id="fileList" class="file-list empty">
             아직 불러온 파일이 없습니다.

@@ -75,6 +75,14 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isSentenceEndChar(ch) {
+  return [".", "?", "!", "…", "。", "？", "！"].includes(ch);
+}
+
 /* =========================
    1. 텍스트 줄바꿈 기능
 ========================= */
@@ -89,6 +97,9 @@ const convertBtn = qs("convertBtn");
 const downloadTextBtn = qs("downloadTextBtn");
 const sampleBtn = qs("sampleBtn");
 const resetTextBtn = qs("resetTextBtn");
+const replaceBtn = qs("replaceBtn");
+const findTextInput = qs("findText");
+const replaceTextInput = qs("replaceText");
 const textStatus = qs("textStatus");
 
 const TIME_PATTERN = /^(\d{2}:\d{2})(\s*)$/;
@@ -98,6 +109,7 @@ convertBtn.addEventListener("click", handleConvertText);
 downloadTextBtn.addEventListener("click", handleDownloadConvertedText);
 sampleBtn.addEventListener("click", insertSampleText);
 resetTextBtn.addEventListener("click", resetTextSection);
+replaceBtn.addEventListener("click", handleBatchReplace);
 
 function handleTextFileLoad(event) {
   const file = event.target.files[0];
@@ -139,7 +151,7 @@ function handleConvertText() {
 
   setStatus(
     textStatus,
-    `변환 완료: ${charLimit}글자 기준으로 시간대별 본문 줄바꿈 처리가 완료되었습니다.`,
+    `변환 완료: 문장 끝 우선 줄바꿈 + ${charLimit}글자 제한 기준으로 처리되었습니다.`,
     "success"
   );
 }
@@ -187,12 +199,45 @@ function resetTextSection() {
   textFileInput.value = "";
   inputText.value = "";
   outputText.value = "";
+  findTextInput.value = "";
+  replaceTextInput.value = "";
   charCountInput.value = 25;
   downloadNameInput.value = "converted.txt";
   includeSpacesInput.checked = true;
   keepBlankLinesInput.checked = true;
   downloadTextBtn.disabled = true;
   setStatus(textStatus, "텍스트 줄바꿈 영역이 초기화되었습니다.");
+}
+
+function handleBatchReplace() {
+  const source = outputText.value;
+  const findText = findTextInput.value;
+  const replaceText = replaceTextInput.value;
+
+  if (!source.trim()) {
+    alert("변환 결과가 없습니다.");
+    return;
+  }
+
+  if (!findText) {
+    alert("찾을 글자를 입력해주세요.");
+    return;
+  }
+
+  const regex = new RegExp(escapeRegExp(findText), "g");
+  const matchCount = (source.match(regex) || []).length;
+
+  if (!matchCount) {
+    setStatus(textStatus, `일치하는 글자가 없습니다: "${findText}"`, "warn");
+    return;
+  }
+
+  outputText.value = source.replace(regex, replaceText);
+  setStatus(
+    textStatus,
+    `일괄 변경 완료: "${findText}" → "${replaceText}" (${matchCount}건)`,
+    "success"
+  );
 }
 
 function convertByTimestampBlocks(text, charLimit, includeSpaces, keepBlankLines) {
@@ -245,7 +290,7 @@ function convertByTimestampBlocks(text, charLimit, includeSpaces, keepBlankLines
       ? block.bodyLines.join("\n").trim()
       : block.bodyLines.join(" ").replace(/\s+/g, " ").trim();
 
-    const wrappedBody = wrapTextByCharCount(joinedBody, charLimit, includeSpaces);
+    const wrappedBody = wrapTextBySentenceOrCharCount(joinedBody, charLimit, includeSpaces);
 
     if (wrappedBody) {
       resultParts.push(`${block.time}\n${wrappedBody}`);
@@ -257,7 +302,7 @@ function convertByTimestampBlocks(text, charLimit, includeSpaces, keepBlankLines
   return resultParts.join("\n\n").trim();
 }
 
-function wrapTextByCharCount(text, charLimit, includeSpaces) {
+function wrapTextBySentenceOrCharCount(text, charLimit, includeSpaces) {
   if (!text) return "";
 
   const normalized = text
@@ -266,32 +311,52 @@ function wrapTextByCharCount(text, charLimit, includeSpaces) {
     .split("\n")
     .map(line => line.trim())
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (!normalized) return "";
 
-  let result = "";
+  const lines = [];
   let buffer = "";
   let count = 0;
 
-  for (const ch of normalized) {
+  for (let i = 0; i < normalized.length; i++) {
+    const ch = normalized[i];
     buffer += ch;
 
     const isCountable = includeSpaces ? true : ch !== " ";
-    if (isCountable) count++;
+    if (isCountable) {
+      count++;
+    }
+
+    if (isSentenceEndChar(ch)) {
+      let nextChar = normalized[i + 1] || "";
+
+      while (nextChar === " ") {
+        i++;
+        buffer += normalized[i];
+        nextChar = normalized[i + 1] || "";
+      }
+
+      lines.push(buffer.trimEnd());
+      buffer = "";
+      count = 0;
+      continue;
+    }
 
     if (count >= charLimit) {
-      result += buffer.trimEnd() + "\n";
+      lines.push(buffer.trimEnd());
       buffer = "";
       count = 0;
     }
   }
 
   if (buffer.trim()) {
-    result += buffer.trimEnd();
+    lines.push(buffer.trimEnd());
   }
 
-  return result.trim();
+  return lines.join("\n").trim();
 }
 
 /* =========================

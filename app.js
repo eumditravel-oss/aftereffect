@@ -1,7 +1,7 @@
 /* =========================
    공통 유틸
 ========================= */
-const STORAGE_KEY = "CONCOST_GITHUB_SCRIPT_APP_SETTINGS_V1";
+const STORAGE_KEY = "GITHUB_SCRIPT_APP_SETTINGS_V1";
 const GH_API_BASE = "https://api.github.com";
 const GH_API_VERSION = "2022-11-28";
 
